@@ -606,9 +606,9 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         } else if let d = value as? Double {
             divValue = .number(d)
         } else if let dict = value as? [String: Any] {
-            divValue = .dict(dict)
+            divValue = .dict(toDivDictionary(dict))
         } else if let arr = value as? [Any] {
-            divValue = .array(arr)
+            divValue = .array(toDivArray(arr))
         } else {
             divValue = .string(value != nil ? "\(value!)" : "")
         }
@@ -616,6 +616,36 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         storage.set(variables: [varName: divValue], triggerUpdate: true)
 
         if exportedVariableNames.contains(name) { FlareExportedVariables.set(name: name, value: value) }
+    }
+
+    private func toDivDictionary(_ dict: [String: Any]) -> [String: AnyHashable] {
+        var result = [String: AnyHashable]()
+        for (k, v) in dict {
+            if let nestedDict = v as? [String: Any] {
+                result[k] = toDivDictionary(nestedDict)
+            } else if let nestedArr = v as? [Any] {
+                result[k] = toDivArray(nestedArr)
+            } else if let h = v as? AnyHashable {
+                result[k] = h
+            } else {
+                result[k] = String(describing: v)
+            }
+        }
+        return result
+    }
+
+    private func toDivArray(_ arr: [Any]) -> [AnyHashable] {
+        return arr.map { item in
+            if let nestedDict = item as? [String: Any] {
+                return toDivDictionary(nestedDict)
+            } else if let nestedArr = item as? [Any] {
+                return toDivArray(nestedArr)
+            } else if let h = item as? AnyHashable {
+                return h
+            } else {
+                return String(describing: item)
+            }
+        }
     }
 
     private func releasePendingAction(mount: Mount, eventType: String) {

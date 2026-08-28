@@ -114,7 +114,8 @@ public final class FlareClientPluginEngine {
 
         let projectedEnvelope = applyExpectFieldsProjection(result: result, expectFields: expectFields)
         let varName = DivVariableName(rawValue: resultVar)
-        variablesStorage.set(variables: [varName: .dict(projectedEnvelope)], triggerUpdate: true)
+        let divDict = toDivDictionary(projectedEnvelope)
+        variablesStorage.set(variables: [varName: .dict(divDict)], triggerUpdate: true)
 
         let actionToFire: String?
         switch result.status {
@@ -125,6 +126,36 @@ public final class FlareClientPluginEngine {
 
         if let action = actionToFire, !action.isEmpty {
             actionFirer(action, originScreenName)
+        }
+    }
+
+    private func toDivDictionary(_ dict: [String: Any]) -> [String: AnyHashable] {
+        var result = [String: AnyHashable]()
+        for (k, v) in dict {
+            if let nestedDict = v as? [String: Any] {
+                result[k] = toDivDictionary(nestedDict)
+            } else if let nestedArr = v as? [Any] {
+                result[k] = toDivArray(nestedArr)
+            } else if let h = v as? AnyHashable {
+                result[k] = h
+            } else {
+                result[k] = String(describing: v)
+            }
+        }
+        return result
+    }
+
+    private func toDivArray(_ arr: [Any]) -> [AnyHashable] {
+        return arr.map { item in
+            if let nestedDict = item as? [String: Any] {
+                return toDivDictionary(nestedDict)
+            } else if let nestedArr = item as? [Any] {
+                return toDivArray(nestedArr)
+            } else if let h = item as? AnyHashable {
+                return h
+            } else {
+                return String(describing: item)
+            }
         }
     }
 
