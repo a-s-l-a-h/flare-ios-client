@@ -10,7 +10,7 @@ public final class FlareNativePaneAdapter: DivCustomBlockFactory {
         self.paneContext = paneContext
     }
 
-    public func makeBlock(data: CustomBlockData, context: DivBlockModelingContext) -> Block {
+    public func makeBlock(data: DivCustomData, context: DivBlockModelingContext) -> Block {
         let type = data.name
         guard let provider = FlareNativePaneRegistry.get(type) else {
             return CustomBlock(widthTrait: .intrinsic, heightTrait: .intrinsic) {

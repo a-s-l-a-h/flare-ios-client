@@ -426,7 +426,7 @@ public class PhoenixChannelClient {
             private let endpointBase: String
             private var params = [String: String]()
             private var timeout: TimeInterval = defaultTimeoutMs
-            private var heartbeatMs: TimeInterval = heartbeatIntervalMs
+            private var heartbeatMs: TimeInterval = PhoenixSocket.heartbeatIntervalMs
             private var logger: PhoenixLogger? = nil
             private var decoder: MessageDecoder = DefaultMessageDecoder()
 
