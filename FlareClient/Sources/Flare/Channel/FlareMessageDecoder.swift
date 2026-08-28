@@ -26,7 +26,7 @@ public final class FlareMessageDecoder: PhoenixChannelClient.MessageDecoder {
             let headerData = data.subdata(in: offset..<offset+headerLen)
             offset += headerLen
 
-            guard var headerJson = try JSONSerialization.jsonObject(with: headerData) as? [String: Any] else { return nil }
+            guard let headerJson = try JSONSerialization.jsonObject(with: headerData) as? [String: Any] else { return nil }
 
             // 2. Unpack GZIP Layout Block
             guard data.count >= offset + 4 else { return nil }

@@ -13,11 +13,13 @@ public final class FlareDivViewFactory {
         let cardId = cardJson["log_id"] as? String ?? "flare_screen"
 
         let jsonData = try JSONSerialization.data(withJSONObject: layoutJson)
-
         let divView = DivView(divKitComponents: divKitComponents)
-        divView.setSource(
-            DivViewSource(kind: .data(jsonData), cardId: DivCardID(rawValue: cardId))
-        )
+        
+        Task { @MainActor in
+            await divView.setSource(
+                DivViewSource(kind: .data(jsonData), cardId: DivCardID(rawValue: cardId))
+            )
+        }
         return divView
     }
 }
