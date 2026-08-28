@@ -9,30 +9,14 @@ public final class FlareDivViewFactory {
     }
 
     public func createView(layoutJson: [String: Any]) throws -> DivView {
-        var cardJson = layoutJson
-        if let card = layoutJson["card"] as? [String: Any] {
-            cardJson = card
-        }
+        let cardJson = (layoutJson["card"] as? [String: Any]) ?? layoutJson
+        let cardId = cardJson["log_id"] as? String ?? "flare_screen"
 
-        let templatesJson = layoutJson["templates"] as? [String: Any]
-        let templateResolver: DivTemplateResolver?
-        if let templatesJson = templatesJson {
-            templateResolver = DivTemplates(raw: templatesJson)
-        } else {
-            templateResolver = nil
-        }
-
-        let divData = try DivData(
-            raw: cardJson,
-            templateResolver: templateResolver
-        )
+        let jsonData = try JSONSerialization.data(withJSONObject: layoutJson)
 
         let divView = DivView(divKitComponents: divKitComponents)
         divView.setSource(
-            DivViewSource(
-                data: divData,
-                cardId: DivCardID(rawValue: cardJson["log_id"] as? String ?? "flare_screen")
-            )
+            DivViewSource(kind: .data(jsonData), cardId: DivCardID(rawValue: cardId))
         )
         return divView
     }
