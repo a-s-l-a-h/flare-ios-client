@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: dev.flareframework
   deploymentTarget:
     iOS: "14.0"
+  xcodeVersion: "15.4"
 packages:
   FlareClient:
     path: .
