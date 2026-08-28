@@ -451,6 +451,12 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private func handlePatch(envelope: [String: Any], region: String) {
         let mount = (region == "content") ? contentMount! : persistentMounts[region]!
+
+        // TEMPORARY DEBUG — remove after diagnosing
+        let alert = UIAlertController(title: "PATCH for \(region)", message: "\(envelope)", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        self.present(alert, animated: true)
+
         if let state = envelope["state"] as? [String: Any] {
             for (k, v) in state { updateVariable(name: k, value: v) }
         }

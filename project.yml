@@ -20,6 +20,10 @@ targets:
         product: FlareClientExtensionsBuiltin
     info:
       path: FlareApp/Info.plist
+        info:
+      path: FlareApp/Info.plist
     settings:
       TARGETED_DEVICE_FAMILY: "1,2"
       SWIFT_VERSION: "5.9"
+      GENERATE_INFOPLIST_FILE: NO
+      INFOPLIST_FILE: FlareApp/Info.plist
