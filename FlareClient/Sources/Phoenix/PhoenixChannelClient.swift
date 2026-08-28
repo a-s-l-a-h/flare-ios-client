@@ -611,12 +611,12 @@ public class PhoenixChannelClient {
                     case .success(let message):
                         switch message {
                         case .string(let text):
-                            if let decoded = try? self.decoder.decode(text: text), let d = decoded, !d.isEmpty {
-                                self.onConnMessage(text: d)
+                            if let decoded = try? self.decoder.decode(text: text), !decoded.isEmpty {
+                                self.onConnMessage(text: decoded)
                             }
                         case .data(let data):
-                            if let decoded = try? self.decoder.decode(data: data), let d = decoded, !d.isEmpty {
-                                self.onConnMessage(text: d)
+                            if let decoded = try? self.decoder.decode(data: data), !decoded.isEmpty {
+                                self.onConnMessage(text: decoded)
                             }
                         @unknown default: break
                         }

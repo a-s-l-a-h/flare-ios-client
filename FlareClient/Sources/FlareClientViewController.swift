@@ -172,8 +172,8 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
         divKitComponents = DivKitComponents(
             divCustomBlockFactory: customBlockFactory,
-            variablesStorage: storage,
-            urlHandler: actionHandler
+            urlHandler: actionHandler,
+            variablesStorage: storage
         )
 
         let pluginContext = PluginContextImpl(controller: self)
