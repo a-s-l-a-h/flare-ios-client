@@ -638,11 +638,12 @@ public class PhoenixChannelClient {
         }
 
         public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+            let code = closeCode.rawValue
+            let reasonStr = reason.flatMap { String(data: $0, encoding: .utf8) } ?? ""
             queue.async { [weak self] in
                 guard let self = self, webSocketTask === self.wsTask else { return }
                 self.wsTask = nil
-                let reasonStr = reason != nil ? (String(data: reason!, encoding: .utf8) ?? "") : ""
-                self.onConnClose(code: closeCode.rawValue, reason: reasonStr)
+                self.onConnClose(code: code, reason: reasonStr)
             }
         }
 

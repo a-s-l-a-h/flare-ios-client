@@ -72,7 +72,12 @@ public final class FlarePluginPermissions: NSObject, CLLocationManagerDelegate {
     }
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let status = manager.authorizationStatus
+        let status: CLAuthorizationStatus
+        if #available(iOS 14.0, *) {
+            status = manager.authorizationStatus
+        } else {
+            status = CLLocationManager.authorizationStatus()
+        }
         if status != .notDetermined {
             locationCompletion?(status == .authorizedWhenInUse || status == .authorizedAlways)
             locationCompletion = nil

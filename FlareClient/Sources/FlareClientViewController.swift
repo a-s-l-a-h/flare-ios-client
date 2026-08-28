@@ -798,23 +798,23 @@ private func showContentInlineErrorFallback(mount: Mount, message: String, onRet
     }
 
     private func loadJsonResource(_ name: String) -> [String: Any]? {
-            var bundles: [Bundle] = [Bundle.main]
-            
-            #if SWIFT_PACKAGE
-            bundles.insert(Bundle.module, at: 0)
-            #endif
-            
-            bundles.append(Bundle(for: Self.self))
-            
-            for bundle in bundles {
-                if let url = bundle.url(forResource: name, withExtension: "json"),
-                   let data = try? Data(contentsOf: url),
-                   let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
-                    return json
-                }
+        var bundles: [Bundle] = [Bundle.main]
+        
+        #if SWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE
+        bundles.insert(Bundle.module, at: 0)
+        #endif
+        
+        bundles.append(Bundle(for: FlareClientViewController.self))
+        
+        for bundle in bundles {
+            if let url = bundle.url(forResource: name, withExtension: "json"),
+               let data = try? Data(contentsOf: url),
+               let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+                return json
             }
-            return nil
         }
+        return nil
+    }
 
         private func loadConnectionLostLayoutJson() -> [String: Any]? {
             if cachedConnectionLostLayoutJson != nil || connectionLostLayoutLoadAttempted { return cachedConnectionLostLayoutJson }
