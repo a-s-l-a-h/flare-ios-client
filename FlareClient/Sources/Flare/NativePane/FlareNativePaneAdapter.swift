@@ -13,29 +13,16 @@ public final class FlareNativePaneAdapter: DivCustomBlockFactory {
     public func makeBlock(data: DivCustomData, context: DivBlockModelingContext) -> Block {
         let type = data.name
         guard let provider = FlareNativePaneRegistry.get(type) else {
-            return GenericViewBlock(
-                layoutDirection: .leftToRight,
-                widthTrait: .intrinsic,
-                heightTrait: .intrinsic
-            ) {
-                let label = UILabel()
-                label.text = "Missing pane: \(type)"
-                label.textColor = .systemRed
-                label.textAlignment = .center
-                return label
-            }
+            let label = UILabel()
+            label.text = "Missing pane: \(type)"
+            label.textColor = .systemRed
+            label.textAlignment = .center
+            return GenericViewBlock.makeIntrinsicSized(for: label)
         }
 
         let props = data.data
-        return GenericViewBlock(
-            layoutDirection: .leftToRight,
-            widthTrait: .intrinsic,
-            heightTrait: .intrinsic
-        ) { [weak self] in
-            guard let self = self else { return UIView() }
-            let view = provider.createView(initialProps: props, paneContext: self.paneContext)
-            self.activeProviders.setObject(provider, forKey: view)
-            return view
-        }
+        let view = provider.createView(initialProps: props, paneContext: paneContext)
+        activeProviders.setObject(provider, forKey: view)
+        return GenericViewBlock.makeIntrinsicSized(for: view)
     }
 }
