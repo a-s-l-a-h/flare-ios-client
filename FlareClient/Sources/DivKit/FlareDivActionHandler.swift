@@ -38,8 +38,17 @@ public final class FlareDivActionHandler: DivUrlHandler {
                 payload[item.name] = item.value ?? ""
             }
         }
-        guard let actionType = payload["flare_action"] as? String, !actionType.isEmpty else { return }
-        callback?.onAction(actionType: actionType, payload: payload, view: view)
+        
+        let pathAction = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let actionType = (payload["flare_action"] as? String)
+            ?? (payload["action"] as? String)
+            ?? (payload["type"] as? String)
+            ?? (payload["name"] as? String)
+            ?? (!pathAction.isEmpty ? pathAction : nil)
+
+        guard let action = actionType, !action.isEmpty else { return }
+        payload["flare_action"] = action
+        callback?.onAction(actionType: action, payload: payload, view: view)
     }
 
     private func handleClientTask(url: URL) {

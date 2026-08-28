@@ -351,22 +351,21 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
             }
     }
 
+    private var variableTypes = [String: String]()
+
     private func handleInit(envelope: [String: Any], region: String) {
         let mount = (region == "content") ? contentMount! : persistentMounts[region]!
         let parsed = FlareEnvelope.fromInit(envelope)
 
-        if let layout = parsed.layout {
-            mount.cachedLayoutJson = layout
-            registerActionPendingVars(layoutJson: layout)
-        }
-
         if let variables = envelope["variables"] as? [[String: Any]] {
             for v in variables {
                 guard let name = v["name"] as? String else { continue }
+                let type = v["type"] as? String ?? "string"
+                variableTypes[name] = type
                 if name == FlareClientViewController.PENDING_VAR { continue }
                 if name.hasPrefix("local_") && initializedLocalVars.contains(name) { continue }
                 if name.hasPrefix("local_") { initializedLocalVars.insert(name) }
-                registerVariable(name: name, type: v["type"] as? String, value: v["value"])
+                registerVariable(name: name, type: type, value: v["value"])
                 if v["exported"] as? Bool == true { exportedVariableNames.insert(name) }
             }
         }
@@ -375,15 +374,26 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
             for (k, v) in state { updateVariable(name: k, value: v) }
         }
 
-        if region == "content", let scaffold = parsed.scaffold {
-            applyScaffold(scaffold)
-        }
-
-        guard let layout = parsed.layout else {
+        guard var layout = parsed.layout else {
             if region == "content" {
                 showScreenErrorFallback(mount: mount, message: "Server sent empty layout for screen: \(currentContentScreen ?? "")", onRetry: { [weak self] in self?.retryCurrentScreen() })
             }
             return
+        }
+
+        // Merge variables into card JSON so DivKit iOS recognizes them in expressions
+        if let varsArray = envelope["variables"] as? [[String: Any]] {
+            if var card = layout["card"] as? [String: Any] {
+                card["variables"] = varsArray
+                layout["card"] = card
+            }
+        }
+
+        mount.cachedLayoutJson = layout
+        registerActionPendingVars(layoutJson: layout)
+
+        if region == "content", let scaffold = parsed.scaffold {
+            applyScaffold(scaffold)
         }
 
         let factory = FlareDivViewFactory(divKitComponents: divKitComponents)
@@ -630,7 +640,8 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     public func updateVariable(name: String, value: Any?) {
         let varName = DivVariableName(rawValue: name)
-        let divValue = parseDivVariable(type: nil, value: value)
+        let type = variableTypes[name]
+        let divValue = parseDivVariable(type: type, value: value)
         divKitComponents.variablesStorage.set(variables: [varName: divValue], triggerUpdate: true)
 
         if exportedVariableNames.contains(name) {
