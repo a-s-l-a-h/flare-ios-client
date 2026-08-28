@@ -1,0 +1,24 @@
+name: FlareApp
+options:
+  bundleIdPrefix: dev.flareframework
+  deploymentTarget:
+    iOS: "14.0"
+packages:
+  FlareClient:
+    path: .
+targets:
+  FlareApp:
+    type: application
+    platform: iOS
+    sources:
+      - FlareApp
+    dependencies:
+      - package: FlareClient
+        product: FlareClient
+      - package: FlareClient
+        product: FlareClientExtensionsBuiltin
+    info:
+      path: FlareApp/Info.plist
+    settings:
+      TARGETED_DEVICE_FAMILY: "1,2"
+      SWIFT_VERSION: "5.9"

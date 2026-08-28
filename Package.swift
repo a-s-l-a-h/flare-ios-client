@@ -11,26 +11,25 @@ let package = Package(
         .library(name: "FlareClientExtensionsBuiltin", targets: ["FlareClientExtensionsBuiltin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/divkit/divkit-ios.git", exact: "30.1.0")
+        .package(url: "https://github.com/divkit/divkit-ios.git", exact: "32.52.0")
     ],
     targets: [
-            .target(
-                name: "FlareClient",
-                dependencies: [
-                    .product(name: "DivKit", package: "divkit-ios"),
-                    .product(name: "LayoutKit", package: "divkit-ios")
-                ],
-                path: "FlareClient",
-                sources: ["Sources"],
-                resources: [
-                    .process("Resources")
-                ]
-            ),
-            .target(
-                name: "FlareClientExtensionsBuiltin",
-                dependencies: ["FlareClient"],
-                path: "FlareClientExtensionsBuiltin",
-                sources: ["Sources"]
-            )
-        ]
+        .target(
+            name: "FlareClient",
+            dependencies: [
+                .product(name: "DivKit", package: "divkit-ios")
+            ],
+            path: "FlareClient",
+            sources: ["Sources"],
+            resources: [
+                .process("Resources")
+            ]
+        ),
+        .target(
+            name: "FlareClientExtensionsBuiltin",
+            dependencies: ["FlareClient"],
+            path: "FlareClientExtensionsBuiltin",
+            sources: ["Sources"]
+        )
+    ]
 )
