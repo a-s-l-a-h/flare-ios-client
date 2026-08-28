@@ -24,7 +24,8 @@ jobs:
         run: xcodegen generate
 
       - name: Resolve SPM packages
-        run: xcodebuild -resolvePackageDependencies -project FlareApp.xcodeproj
+        run: |
+          xcodebuild -resolvePackageDependencies -project FlareApp.xcodeproj -clonedSourcePackagesDirPath .spm_packages
 
       - name: Build for iOS Simulator
         run: |
