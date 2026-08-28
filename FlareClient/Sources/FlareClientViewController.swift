@@ -162,14 +162,14 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         storage.set(name: DivVariableName(rawValue: "local_dark_mode"), value: .bool(isDarkMode))
         initializedLocalVars.insert("local_dark_mode")
 
-        let actionHandler = FlareDivActionHandler(callback: self, variablesStorage: storage)
+        let actionHandler = FlareDivActionHandler(callback: self)
         let paneContext = NativePaneContextImpl(controller: self)
         let customBlockFactory = FlareNativePaneAdapter(paneContext: paneContext)
 
         divKitComponents = DivKitComponents(
             divCustomBlockFactory: customBlockFactory,
             variablesStorage: storage,
-            actionHandler: actionHandler
+            urlHandler: actionHandler
         )
 
         let pluginContext = PluginContextImpl(controller: self)
