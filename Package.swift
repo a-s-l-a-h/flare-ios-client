@@ -11,9 +11,8 @@ let package = Package(
         .library(name: "FlareClientExtensionsBuiltin", targets: ["FlareClientExtensionsBuiltin"])
     ],
     dependencies: [
-        // Pin to a verified real tag (7.19.0) that satisfies DivKit (>= 7.12.3)
-        // and does not contain the broken SendableMetatype changes.
-        .package(url: "https://github.com/yandex/vgsl.git", exact: "7.19.0"),
+        // Let SPM pick a vgsl version compatible with whatever divkit-ios version is pinned below.
+        .package(url: "https://github.com/yandex/vgsl.git", "7.21.0"..<"8.0.0"),
         .package(url: "https://github.com/divkit/divkit-ios.git", exact: "32.52.0")
     ],
     targets: [
