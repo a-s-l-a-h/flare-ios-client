@@ -10,6 +10,7 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         var screenName: String?
         var divView: DivView?
         var pendingActions = Set<String>()
+        var cachedLayoutJson: [String: Any]?
 
         init(region: String, container: UIView) {
             self.region = region
@@ -60,6 +61,7 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private var divKitComponents: DivKitComponents!
     private var clientPluginEngine: FlareClientPluginEngine!
+    private var variablesStorage: DivVariablesStorage!
 
     private var cachedConnectionLostLayoutJson: [String: Any]?
     private var connectionLostLayoutLoadAttempted = false
@@ -125,6 +127,7 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
             flBottomBar.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor),
             flBottomBar.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor),
             flBottomBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            flBottomBar.heightAnchor.constraint(greaterThanOrEqualToConstant: 56),
 
             ambientIsland.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
             ambientIsland.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -158,9 +161,9 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     }
 
     private func setupDivKit() {
-        let storage = DivVariablesStorage()
+        variablesStorage = DivVariablesStorage()
         let isDarkMode = UserDefaults.standard.bool(forKey: PREF_DARK_MODE)
-        storage.set(
+        variablesStorage.set(
             variables: [
                 DivVariableName(rawValue: FlareClientViewController.PENDING_VAR): .bool(false),
                 DivVariableName(rawValue: "local_dark_mode"): .bool(isDarkMode)
@@ -176,13 +179,13 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         divKitComponents = DivKitComponents(
             divCustomBlockFactory: customBlockFactory,
             urlHandler: actionHandler,
-            variablesStorage: storage
+            variablesStorage: variablesStorage
         )
 
         let pluginContext = PluginContextImpl(controller: self)
         clientPluginEngine = FlareClientPluginEngine(
             host: self,
-            variablesStorage: storage,
+            variablesStorage: variablesStorage,
             context: pluginContext,
             livenessCheck: { [weak self] screenName in
                 guard let self = self else { return false }
@@ -353,6 +356,7 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         let parsed = FlareEnvelope.fromInit(envelope)
 
         if let layout = parsed.layout {
+            mount.cachedLayoutJson = layout
             registerActionPendingVars(layoutJson: layout)
         }
 
@@ -452,13 +456,10 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     private func handlePatch(envelope: [String: Any], region: String) {
         let mount = (region == "content") ? contentMount! : persistentMounts[region]!
 
-        // TEMPORARY DEBUG — remove after diagnosing
-        let alert = UIAlertController(title: "PATCH for \(region)", message: "\(envelope)", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        self.present(alert, animated: true)
-
         if let state = envelope["state"] as? [String: Any] {
-            for (k, v) in state { updateVariable(name: k, value: v) }
+            for (k, v) in state { 
+                updateVariable(name: k, value: v) 
+            }
         }
         clearPendingForMount(mount)
 
@@ -667,13 +668,11 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
             }
         }
 
-        // Auto-infer if type not provided
         if let dict = value as? [String: Any] {
             return .dict(toDivDictionary(dict))
         } else if let arr = value as? [Any] {
             return .array(toDivArray(arr))
         } else if let num = value as? NSNumber {
-            // Strictly check for true CFBoolean
             if CFGetTypeID(num) == CFBooleanGetTypeID() {
                 return .bool(num.boolValue)
             } else if CFNumberIsFloatType(num as CFNumber) {

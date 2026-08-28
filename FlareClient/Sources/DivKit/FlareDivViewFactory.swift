@@ -1,5 +1,6 @@
 import UIKit
 import DivKit
+import VGSL
 
 public final class FlareDivViewFactory {
     private let divKitComponents: DivKitComponents
@@ -23,11 +24,15 @@ public final class FlareDivViewFactory {
         let jsonData = try JSONSerialization.data(withJSONObject: finalJson)
         let divView = DivView(divKitComponents: divKitComponents)
         
-        Task { @MainActor in
-            await divView.setSource(
-                DivViewSource(kind: .data(jsonData), cardId: DivCardID(rawValue: cardId))
-            )
-        }
+        let cardIdObj = DivCardID(rawValue: cardId)
+        let source = DivViewSource(kind: .data(jsonData), cardId: cardIdObj)
+        
+        divView.setSource(source, cardId: cardIdObj)
         return divView
+    }
+
+    public func updateView(_ divView: DivView, cardId: String) {
+        let cardIdObj = DivCardID(rawValue: cardId)
+        divView.setSource(divView.source, cardId: cardIdObj)
     }
 }

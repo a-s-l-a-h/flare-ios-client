@@ -21,6 +21,7 @@ class MainViewController: UIViewController {
         tfUrl.text = UserDefaults.standard.string(forKey: "last_http_url") ?? "http://localhost:4000/"
         tfUrl.borderStyle = .roundedRect
         tfUrl.autocapitalizationType = .none
+        tfUrl.autocorrectionType = .no
         tfUrl.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tfUrl)
 
@@ -34,18 +35,19 @@ class MainViewController: UIViewController {
         view.addSubview(btnConnect)
 
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 80),
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            tfUrl.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
+            tfUrl.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 36),
             tfUrl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             tfUrl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            tfUrl.heightAnchor.constraint(equalToConstant: 48),
+            tfUrl.heightAnchor.constraint(equalToConstant: 50),
 
-            btnConnect.topAnchor.constraint(equalTo: tfUrl.bottomAnchor, constant: 24),
+            btnConnect.topAnchor.constraint(equalTo: tfUrl.bottomAnchor, constant: 20),
             btnConnect.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             btnConnect.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            btnConnect.heightAnchor.constraint(equalToConstant: 56)
+            btnConnect.heightAnchor.constraint(equalToConstant: 54)
         ])
     }
 
