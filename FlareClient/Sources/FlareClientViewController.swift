@@ -779,32 +779,29 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         }
     }
 
-private func showContentInlineErrorFallback(mount: Mount, message: String, onRetry: @escaping () -> Void) {
-            mount.container.subviews.forEach { $0.removeFromSuperview() }
-            let label = UILabel()
-            label.text = "\(message)\n\n(Tap to retry)"
-            label.numberOfLines = 0
-            label.textAlignment = .center
-            label.textColor = .systemRed
-            label.isUserInteractionEnabled = true
-            label.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(onInlineRetryTapped)))
-            label.frame = mount.container.bounds
-            label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            mount.container.addSubview(label)
-        }
+    private func showContentInlineErrorFallback(mount: Mount, message: String, onRetry: @escaping () -> Void) {
+        mount.container.subviews.forEach { $0.removeFromSuperview() }
+        let label = UILabel()
+        label.text = "\(message)\n\n(Tap to retry)"
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.textColor = .systemRed
+        label.isUserInteractionEnabled = true
+        label.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(onInlineRetryTapped)))
+        label.frame = mount.container.bounds
+        label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        mount.container.addSubview(label)
+    }
 
     @objc private func onInlineRetryTapped() {
         retryCurrentScreen()
     }
 
     private func loadJsonResource(_ name: String) -> [String: Any]? {
-        var bundles: [Bundle] = [Bundle.main]
-        
-        #if SWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE
-        bundles.insert(Bundle.module, at: 0)
-        #endif
-        
-        bundles.append(Bundle(for: FlareClientViewController.self))
+        let bundles: [Bundle] = [
+            Bundle.main,
+            Bundle(for: FlareClientViewController.self)
+        ]
         
         for bundle in bundles {
             if let url = bundle.url(forResource: name, withExtension: "json"),
@@ -816,19 +813,19 @@ private func showContentInlineErrorFallback(mount: Mount, message: String, onRet
         return nil
     }
 
-        private func loadConnectionLostLayoutJson() -> [String: Any]? {
-            if cachedConnectionLostLayoutJson != nil || connectionLostLayoutLoadAttempted { return cachedConnectionLostLayoutJson }
-            connectionLostLayoutLoadAttempted = true
-            cachedConnectionLostLayoutJson = loadJsonResource("connection_lost_screen")
-            return cachedConnectionLostLayoutJson
-        }
-    
-        private func loadScreenErrorLayoutJson() -> [String: Any]? {
-            if cachedScreenErrorLayoutJson != nil || screenErrorLayoutLoadAttempted { return cachedScreenErrorLayoutJson }
-            screenErrorLayoutLoadAttempted = true
-            cachedScreenErrorLayoutJson = loadJsonResource("screen_error_screen")
-            return cachedScreenErrorLayoutJson
-        }
+    private func loadConnectionLostLayoutJson() -> [String: Any]? {
+        if cachedConnectionLostLayoutJson != nil || connectionLostLayoutLoadAttempted { return cachedConnectionLostLayoutJson }
+        connectionLostLayoutLoadAttempted = true
+        cachedConnectionLostLayoutJson = loadJsonResource("connection_lost_screen")
+        return cachedConnectionLostLayoutJson
+    }
+
+    private func loadScreenErrorLayoutJson() -> [String: Any]? {
+        if cachedScreenErrorLayoutJson != nil || screenErrorLayoutLoadAttempted { return cachedScreenErrorLayoutJson }
+        screenErrorLayoutLoadAttempted = true
+        cachedScreenErrorLayoutJson = loadJsonResource("screen_error_screen")
+        return cachedScreenErrorLayoutJson
+    }
 
     private func setupLifecycleObservers() {
         NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in

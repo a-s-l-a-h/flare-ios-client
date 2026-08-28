@@ -805,18 +805,23 @@ public class PhoenixChannelClient {
             queue.async { [weak self] in
                 guard let self = self else { return }
                 switch type {
-                case "open": self.removeById(id: id, ids: &self.openIds, cbs: &self.openCbs)
-                case "close": self.removeById(id: id, ids: &self.closeIds, cbs: &self.closeCbs)
-                case "error": self.removeById(id: id, ids: &self.errorIds, cbs: &self.errorCbs)
+                case "open":
+                    if let idx = self.openIds.firstIndex(of: id) {
+                        self.openIds.remove(at: idx)
+                        self.openCbs.remove(at: idx)
+                    }
+                case "close":
+                    if let idx = self.closeIds.firstIndex(of: id) {
+                        self.closeIds.remove(at: idx)
+                        self.closeCbs.remove(at: idx)
+                    }
+                case "error":
+                    if let idx = self.errorIds.firstIndex(of: id) {
+                        self.errorIds.remove(at: idx)
+                        self.errorCbs.remove(at: idx)
+                    }
                 default: break
                 }
-            }
-        }
-
-        private func removeById<T>(id: Int, ids: inout [Int], cbs: inout [T]) {
-            if let idx = ids.firstIndex(of: id) {
-                ids.remove(at: idx)
-                cbs.remove(at: idx)
             }
         }
 
@@ -857,9 +862,9 @@ public class PhoenixChannelClient {
             _ = channel.on(event: "presence_state") { [weak self] newState, _, _ in
                 guard let self = self else { return }
                 self.joinRef = self.channel.joinRef()
-                PhoenixPresence.syncState(state: &self.state, newState: newState, onJoin: self.onJoinCallback, onLeave: self.onLeaveCallback)
+                self.syncState(newState: newState)
                 for diff in self.pendingDiffs {
-                    PhoenixPresence.syncDiff(state: &self.state, diff: diff, onJoin: self.onJoinCallback, onLeave: self.onLeaveCallback)
+                    self.syncDiff(diff: diff)
                 }
                 self.pendingDiffs.removeAll()
                 self.onSyncCallback?()
@@ -870,7 +875,7 @@ public class PhoenixChannelClient {
                 if self.inPendingSyncState() {
                     self.pendingDiffs.append(diff)
                 } else {
-                    PhoenixPresence.syncDiff(state: &self.state, diff: diff, onJoin: self.onJoinCallback, onLeave: self.onLeaveCallback)
+                    self.syncDiff(diff: diff)
                     self.onSyncCallback?()
                 }
             }
@@ -884,7 +889,7 @@ public class PhoenixChannelClient {
             return joinRef == nil || joinRef != channel.joinRef()
         }
 
-        private static func syncState(state: inout [String: [String: Any]], newState: [String: Any], onJoin: PresenceChangeCallback?, onLeave: PresenceChangeCallback?) {
+        private func syncState(newState: [String: Any]) {
             var joins = [String: Any]()
             var leaves = [String: Any]()
 
@@ -903,7 +908,7 @@ public class PhoenixChannelClient {
                     var joinedMetas = [[String: Any]]()
                     for m in newMetas {
                         let phxRef = m["phx_ref"] as? String ?? ""
-                        if !containsRef(metas: curMetas, phxRef: phxRef) { joinedMetas.append(m) }
+                        if !PhoenixPresence.containsRef(metas: curMetas, phxRef: phxRef) { joinedMetas.append(m) }
                     }
                     if !joinedMetas.isEmpty {
                         var joinEntry = newPresence
@@ -914,7 +919,7 @@ public class PhoenixChannelClient {
                     var leftMetas = [[String: Any]]()
                     for m in curMetas {
                         let phxRef = m["phx_ref"] as? String ?? ""
-                        if !containsRef(metas: newMetas, phxRef: phxRef) { leftMetas.append(m) }
+                        if !PhoenixPresence.containsRef(metas: newMetas, phxRef: phxRef) { leftMetas.append(m) }
                     }
                     if !leftMetas.isEmpty {
                         var leaveEntry = curPresence
@@ -927,10 +932,10 @@ public class PhoenixChannelClient {
             }
 
             let diff: [String: Any] = ["joins": joins, "leaves": leaves]
-            syncDiff(state: &state, diff: diff, onJoin: onJoin, onLeave: onLeave)
+            syncDiff(diff: diff)
         }
 
-        private static func syncDiff(state: inout [String: [String: Any]], diff: [String: Any], onJoin: PresenceChangeCallback?, onLeave: PresenceChangeCallback?) {
+        private func syncDiff(diff: [String: Any]) {
             if let joins = diff["joins"] as? [String: [String: Any]] {
                 for (key, newPresence) in joins {
                     let curPresence = state[key]
@@ -941,13 +946,13 @@ public class PhoenixChannelClient {
                         var merged = [[String: Any]]()
                         for m in curMetas {
                             let phxRef = m["phx_ref"] as? String ?? ""
-                            if !containsRef(metas: joinedRefs, phxRef: phxRef) { merged.append(m) }
+                            if !PhoenixPresence.containsRef(metas: joinedRefs, phxRef: phxRef) { merged.append(m) }
                         }
                         merged.append(contentsOf: joinedRefs)
                         updated["metas"] = merged
                     }
                     state[key] = updated
-                    onJoin?(key, curPresence, newPresence)
+                    onJoinCallback?(key, curPresence, newPresence)
                 }
             }
 
@@ -960,10 +965,10 @@ public class PhoenixChannelClient {
 
                     for m in curMetas {
                         let phxRef = m["phx_ref"] as? String ?? ""
-                        if !containsRef(metas: refsToRemove, phxRef: phxRef) { keptMetas.append(m) }
+                        if !PhoenixPresence.containsRef(metas: refsToRemove, phxRef: phxRef) { keptMetas.append(m) }
                     }
                     curPresence["metas"] = keptMetas
-                    onLeave?(key, curPresence, leftPresence)
+                    onLeaveCallback?(key, curPresence, leftPresence)
 
                     if keptMetas.isEmpty { state.removeValue(forKey: key) }
                     else { state[key] = curPresence }

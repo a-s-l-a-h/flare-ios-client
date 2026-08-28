@@ -17,12 +17,12 @@ public final class FlareNativePaneAdapter: DivCustomBlockFactory {
             label.text = "Missing pane: \(type)"
             label.textColor = .systemRed
             label.textAlignment = .center
-            return GenericViewBlock.makeIntrinsicSized(for: label)
+            return GenericViewBlock(content: .view(label), width: .resizable, height: .fixed(44))
         }
 
         let props = data.data
         let view = provider.createView(initialProps: props, paneContext: paneContext)
         activeProviders.setObject(provider, forKey: view)
-        return GenericViewBlock.makeIntrinsicSized(for: view)
+        return GenericViewBlock(content: .view(view), width: .resizable, height: .resizable)
     }
 }
