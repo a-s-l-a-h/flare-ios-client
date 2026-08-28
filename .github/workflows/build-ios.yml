@@ -17,6 +17,23 @@ jobs:
         with:
           xcode-version: '26.2'
 
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: .spm_packages
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', 'project.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Cache Build DerivedData
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('Package.swift', 'project.yml', '**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-${{ hashFiles('Package.swift', 'project.yml') }}
+            ${{ runner.os }}-deriveddata-
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -34,6 +51,7 @@ jobs:
             -scheme FlareApp \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
+            -clonedSourcePackagesDirPath .spm_packages \
             -derivedDataPath build
 
       - name: Package .app to ZIP
