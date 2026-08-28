@@ -37,7 +37,6 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private var contentMount: Mount!
     private var persistentMounts = [String: Mount]()
-    // Full 5-region scaffold modeling matching Android architecture
     private let ALL_SCAFFOLD_REGIONS = ["bottom_bar", "top_bar", "drawer", "end_drawer", "overlay"]
     private let ACTIVE_SCAFFOLD_REGIONS = ["bottom_bar"]
 
@@ -58,7 +57,6 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     private var reconnectFailureStreak = 0
     private var contentJoinFailureStreak = 0
 
-    private var mainStackView = UIStackView()
     private var transitionOverlay = TransitionOverlayView()
     private var ambientIsland = AmbientIslandView()
 
@@ -91,25 +89,23 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private func setupUI() {
         let isDarkMode = UserDefaults.standard.bool(forKey: PREF_DARK_MODE)
-        view.backgroundColor = isDarkMode ? Self.COLOR_BG_DARK : Self.COLOR_BG_LIGHT
+        let bgColor = isDarkMode ? Self.COLOR_BG_DARK : Self.COLOR_BG_LIGHT
+        view.backgroundColor = bgColor
 
-        mainStackView.axis = .vertical
-        mainStackView.distribution = .fill
-        mainStackView.alignment = .fill
-        mainStackView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(mainStackView)
+        let mainContainer = UIView()
+        mainContainer.translatesAutoresizingMaskIntoConstraints = false
+        mainContainer.backgroundColor = bgColor
+        view.addSubview(mainContainer)
 
         let flContent = UIView()
         flContent.translatesAutoresizingMaskIntoConstraints = false
-        flContent.setContentHuggingPriority(.defaultLow, for: .vertical)
-        flContent.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        flContent.backgroundColor = isDarkMode ? Self.COLOR_BG_DARK : Self.COLOR_BG_LIGHT
-        mainStackView.addArrangedSubview(flContent)
+        flContent.backgroundColor = bgColor
+        mainContainer.addSubview(flContent)
 
         let flBottomBar = UIView()
         flBottomBar.translatesAutoresizingMaskIntoConstraints = false
-        flBottomBar.heightAnchor.constraint(equalToConstant: 64).isActive = true
-        mainStackView.addArrangedSubview(flBottomBar)
+        flBottomBar.backgroundColor = bgColor
+        mainContainer.addSubview(flBottomBar)
 
         ambientIsland.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(ambientIsland)
@@ -118,10 +114,19 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         view.addSubview(transitionOverlay)
 
         NSLayoutConstraint.activate([
-            mainStackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            mainStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            mainStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            mainStackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            mainContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            mainContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            mainContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            mainContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            flContent.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            flContent.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor),
+            flContent.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor),
+            flContent.bottomAnchor.constraint(equalTo: flBottomBar.topAnchor),
+
+            flBottomBar.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor),
+            flBottomBar.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor),
+            flBottomBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
             ambientIsland.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
             ambientIsland.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -381,11 +386,17 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
         let factory = FlareDivViewFactory(divKitComponents: divKitComponents)
         if let divView = try? factory.createView(layoutJson: layout) {
-            divView.frame = mount.container.bounds
-            divView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-
+            divView.translatesAutoresizingMaskIntoConstraints = false
             let oldViews = mount.container.subviews
             mount.container.addSubview(divView)
+
+            NSLayoutConstraint.activate([
+                divView.topAnchor.constraint(equalTo: mount.container.topAnchor),
+                divView.leadingAnchor.constraint(equalTo: mount.container.leadingAnchor),
+                divView.trailingAnchor.constraint(equalTo: mount.container.trailingAnchor),
+                divView.bottomAnchor.constraint(equalTo: mount.container.bottomAnchor)
+            ])
+
             oldViews.forEach { $0.removeFromSuperview() }
             mount.divView = divView
 
@@ -461,11 +472,24 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         handleInit(envelope: envelope, region: region)
     }
 
-    public func onAction(actionType: String, payload: [String: Any], view: UIView?) {
-        var sourceMount = contentMount!
-        if let v = view {
-            for (_, m) in persistentMounts where m.divView === v { sourceMount = m; break }
+    private func findMount(for view: UIView?) -> Mount {
+        guard let view = view else { return contentMount }
+        for (_, mount) in persistentMounts {
+            if let divView = mount.divView, view === divView || view.isDescendant(of: divView) {
+                return mount
+            }
+            if view.isDescendant(of: mount.container) {
+                return mount
+            }
         }
+        if let contentDiv = contentMount.divView, view === contentDiv || view.isDescendant(of: contentDiv) {
+            return contentMount
+        }
+        return contentMount
+    }
+
+    public func onAction(actionType: String, payload: [String: Any], view: UIView?) {
+        let sourceMount = findMount(for: view)
         handleResolvedAction(eventType: actionType, payload: payload, sourceMount: sourceMount)
     }
 
@@ -474,6 +498,7 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     }
 
     public func onClientPlugin(pluginId: String, invocation: [String: Any], view: UIView?) {
+        let sourceMount = findMount(for: view)
         clientPluginEngine.dispatch(
             pluginId: pluginId,
             resultVar: invocation["result_var"] as? String ?? "",
@@ -483,7 +508,7 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
             onError: invocation["on_error"] as? String,
             onCancel: invocation["on_cancel"] as? String,
             timeoutMsOverride: invocation["timeout_ms"] as? TimeInterval,
-            originScreenName: currentContentScreen
+            originScreenName: sourceMount.screenName ?? currentContentScreen
         )
     }
 
@@ -492,8 +517,10 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
             let next = !UserDefaults.standard.bool(forKey: PREF_DARK_MODE)
             UserDefaults.standard.set(next, forKey: PREF_DARK_MODE)
             updateVariable(name: "local_dark_mode", value: next)
-            view.backgroundColor = next ? Self.COLOR_BG_DARK : Self.COLOR_BG_LIGHT
-            contentMount.container.backgroundColor = next ? Self.COLOR_BG_DARK : Self.COLOR_BG_LIGHT
+            let newColor = next ? Self.COLOR_BG_DARK : Self.COLOR_BG_LIGHT
+            view.backgroundColor = newColor
+            contentMount.container.backgroundColor = newColor
+            persistentMounts["bottom_bar"]?.container.backgroundColor = newColor
             return
         }
 
@@ -707,7 +734,6 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private func handleJoinFailure(screenName: String, region: String, payload: [String: Any]?) {
         let reason = payload?["reason"] as? String ?? ""
-        // Complete auth failure taxonomy matching Android
         if reason == "authentication_required" || reason == "session_expired" || reason == "invalid_token" {
             clearStorage()
         } else if region == "content" {
@@ -770,9 +796,14 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         let factory = FlareDivViewFactory(divKitComponents: divKitComponents)
         if let view = try? factory.createView(layoutJson: layoutJson) {
             mount.container.subviews.forEach { $0.removeFromSuperview() }
-            view.frame = mount.container.bounds
-            view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.translatesAutoresizingMaskIntoConstraints = false
             mount.container.addSubview(view)
+            NSLayoutConstraint.activate([
+                view.topAnchor.constraint(equalTo: mount.container.topAnchor),
+                view.leadingAnchor.constraint(equalTo: mount.container.leadingAnchor),
+                view.trailingAnchor.constraint(equalTo: mount.container.trailingAnchor),
+                view.bottomAnchor.constraint(equalTo: mount.container.bottomAnchor)
+            ])
             mount.divView = view
         } else {
             showContentInlineErrorFallback(mount: mount, message: message, onRetry: onRetry)
@@ -788,9 +819,14 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
         label.textColor = .systemRed
         label.isUserInteractionEnabled = true
         label.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(onInlineRetryTapped)))
-        label.frame = mount.container.bounds
-        label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        label.translatesAutoresizingMaskIntoConstraints = false
         mount.container.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: mount.container.topAnchor),
+            label.leadingAnchor.constraint(equalTo: mount.container.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: mount.container.trailingAnchor),
+            label.bottomAnchor.constraint(equalTo: mount.container.bottomAnchor)
+        ])
     }
 
     @objc private func onInlineRetryTapped() {
