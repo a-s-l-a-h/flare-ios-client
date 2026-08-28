@@ -156,10 +156,14 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private func setupDivKit() {
         let storage = DivVariablesStorage()
-        storage.set(name: DivVariableName(rawValue: FlareClientViewController.PENDING_VAR), value: .bool(false))
-
         let isDarkMode = UserDefaults.standard.bool(forKey: PREF_DARK_MODE)
-        storage.set(name: DivVariableName(rawValue: "local_dark_mode"), value: .bool(isDarkMode))
+        storage.set(
+            variables: [
+                DivVariableName(rawValue: FlareClientViewController.PENDING_VAR): .bool(false),
+                DivVariableName(rawValue: "local_dark_mode"): .bool(isDarkMode)
+            ],
+            triggerUpdate: false
+        )
         initializedLocalVars.insert("local_dark_mode")
 
         let actionHandler = FlareDivActionHandler(callback: self)
@@ -411,9 +415,13 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     private func registerActionPendingVars(layoutJson: [String: Any]) {
         var actions = Set<String>()
         extractFlareActions(obj: layoutJson, found: &actions)
+        var varsToSet: [DivVariableName: DivVariableValue] = [:]
         for action in actions {
             let varName = "local_flare_pending_\(action)"
-            divKitComponents.variablesStorage.set(name: DivVariableName(rawValue: varName), value: .bool(false))
+            varsToSet[DivVariableName(rawValue: varName)] = .bool(false)
+        }
+        if !varsToSet.isEmpty {
+            divKitComponents.variablesStorage.set(variables: varsToSet, triggerUpdate: false)
         }
     }
 
@@ -589,12 +597,23 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     public func updateVariable(name: String, value: Any?) {
         let varName = DivVariableName(rawValue: name)
         let storage = divKitComponents.variablesStorage
-        if let b = value as? Bool { storage.set(name: varName, value: .bool(b)) }
-        else if let i = value as? Int { storage.set(name: varName, value: .integer(i)) }
-        else if let d = value as? Double { storage.set(name: varName, value: .number(d)) }
-        else if let dict = value as? [String: Any] { storage.set(name: varName, value: .dict(dict)) }
-        else if let arr = value as? [Any] { storage.set(name: varName, value: .array(arr)) }
-        else { storage.set(name: varName, value: .string(value != nil ? "\(value!)" : "")) }
+        let divValue: DivVariableValue
+
+        if let b = value as? Bool {
+            divValue = .bool(b)
+        } else if let i = value as? Int {
+            divValue = .integer(i)
+        } else if let d = value as? Double {
+            divValue = .number(d)
+        } else if let dict = value as? [String: Any] {
+            divValue = .dict(dict)
+        } else if let arr = value as? [Any] {
+            divValue = .array(arr)
+        } else {
+            divValue = .string(value != nil ? "\(value!)" : "")
+        }
+
+        storage.set(variables: [varName: divValue], triggerUpdate: true)
 
         if exportedVariableNames.contains(name) { FlareExportedVariables.set(name: name, value: value) }
     }

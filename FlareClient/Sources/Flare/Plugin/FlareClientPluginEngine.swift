@@ -113,7 +113,8 @@ public final class FlareClientPluginEngine {
         }
 
         let projectedEnvelope = applyExpectFieldsProjection(result: result, expectFields: expectFields)
-        variablesStorage.set(name: DivVariableName(rawValue: resultVar), value: .dict(projectedEnvelope))
+        let varName = DivVariableName(rawValue: resultVar)
+        variablesStorage.set(variables: [varName: .dict(projectedEnvelope)], triggerUpdate: true)
 
         let actionToFire: String?
         switch result.status {
