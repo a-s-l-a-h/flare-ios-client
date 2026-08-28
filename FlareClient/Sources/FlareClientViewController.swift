@@ -3,7 +3,6 @@ import DivKit
 
 public class FlareClientViewController: UIViewController, FlareDivActionCallback {
 
-    // Reference type model matching Android Mount architecture
     private final class Mount {
         let region: String
         let container: UIView
@@ -37,7 +36,6 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
 
     private var contentMount: Mount!
     private var persistentMounts = [String: Mount]()
-    private let ALL_SCAFFOLD_REGIONS = ["bottom_bar", "top_bar", "drawer", "end_drawer", "overlay"]
     private let ACTIVE_SCAFFOLD_REGIONS = ["bottom_bar"]
 
     private var socket: PhoenixChannelClient.PhoenixSocket?
@@ -618,31 +616,70 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
     }
 
     private func registerVariable(name: String, type: String?, value: Any?) {
-        updateVariable(name: name, value: value)
+        let divValue = parseDivVariable(type: type, value: value)
+        let varName = DivVariableName(rawValue: name)
+        divKitComponents.variablesStorage.set(variables: [varName: divValue], triggerUpdate: false)
     }
 
     public func updateVariable(name: String, value: Any?) {
         let varName = DivVariableName(rawValue: name)
-        let storage = divKitComponents.variablesStorage
-        let divValue: DivVariableValue
+        let divValue = parseDivVariable(type: nil, value: value)
+        divKitComponents.variablesStorage.set(variables: [varName: divValue], triggerUpdate: true)
 
-        if let b = value as? Bool {
-            divValue = .bool(b)
-        } else if let i = value as? Int {
-            divValue = .integer(i)
-        } else if let d = value as? Double {
-            divValue = .number(d)
-        } else if let dict = value as? [String: Any] {
-            divValue = .dict(toDivDictionary(dict))
-        } else if let arr = value as? [Any] {
-            divValue = .array(toDivArray(arr))
-        } else {
-            divValue = .string(value != nil ? "\(value!)" : "")
+        if exportedVariableNames.contains(name) {
+            FlareExportedVariables.set(name: name, value: value)
+        }
+    }
+
+    private func parseDivVariable(type: String?, value: Any?) -> DivVariableValue {
+        guard let value = value, !(value is NSNull) else {
+            return .string("")
         }
 
-        storage.set(variables: [varName: divValue], triggerUpdate: true)
+        if let type = type?.lowercased() {
+            switch type {
+            case "integer":
+                if let num = value as? NSNumber { return .integer(num.intValue) }
+                if let str = value as? String, let intVal = Int(str) { return .integer(intVal) }
+                return .integer(0)
+            case "number":
+                if let num = value as? NSNumber { return .number(num.doubleValue) }
+                if let str = value as? String, let dVal = Double(str) { return .number(dVal) }
+                return .number(0.0)
+            case "boolean":
+                if let num = value as? NSNumber { return .bool(num.boolValue) }
+                if let str = value as? String { return .bool(str.lowercased() == "true") }
+                return .bool(false)
+            case "dict":
+                if let dict = value as? [String: Any] { return .dict(toDivDictionary(dict)) }
+                return .dict([:])
+            case "array":
+                if let arr = value as? [Any] { return .array(toDivArray(arr)) }
+                return .array([])
+            default:
+                return .string("\(value)")
+            }
+        }
 
-        if exportedVariableNames.contains(name) { FlareExportedVariables.set(name: name, value: value) }
+        // Auto-infer if type not provided
+        if let dict = value as? [String: Any] {
+            return .dict(toDivDictionary(dict))
+        } else if let arr = value as? [Any] {
+            return .array(toDivArray(arr))
+        } else if let num = value as? NSNumber {
+            // Strictly check for true CFBoolean
+            if CFGetTypeID(num) == CFBooleanGetTypeID() {
+                return .bool(num.boolValue)
+            } else if CFNumberIsFloatType(num as CFNumber) {
+                return .number(num.doubleValue)
+            } else {
+                return .integer(num.intValue)
+            }
+        } else if let str = value as? String {
+            return .string(str)
+        } else {
+            return .string("\(value)")
+        }
     }
 
     private func toDivDictionary(_ dict: [String: Any]) -> [String: AnyHashable] {
@@ -652,6 +689,14 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
                 result[k] = toDivDictionary(nestedDict)
             } else if let nestedArr = v as? [Any] {
                 result[k] = toDivArray(nestedArr)
+            } else if let num = v as? NSNumber {
+                if CFGetTypeID(num) == CFBooleanGetTypeID() {
+                    result[k] = num.boolValue
+                } else if CFNumberIsFloatType(num as CFNumber) {
+                    result[k] = num.doubleValue
+                } else {
+                    result[k] = num.intValue
+                }
             } else if let h = v as? AnyHashable {
                 result[k] = h
             } else {
@@ -667,6 +712,14 @@ public class FlareClientViewController: UIViewController, FlareDivActionCallback
                 return toDivDictionary(nestedDict)
             } else if let nestedArr = item as? [Any] {
                 return toDivArray(nestedArr)
+            } else if let num = item as? NSNumber {
+                if CFGetTypeID(num) == CFBooleanGetTypeID() {
+                    return num.boolValue
+                } else if CFNumberIsFloatType(num as CFNumber) {
+                    return num.doubleValue
+                } else {
+                    return num.intValue
+                }
             } else if let h = item as? AnyHashable {
                 return h
             } else {
